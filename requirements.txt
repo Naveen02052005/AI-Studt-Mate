@@ -12,3 +12,5 @@ sentence-transformers
 pytesseract
 pdf2image
 rank_bm25
+supabase
+Authlib>=1.3.2

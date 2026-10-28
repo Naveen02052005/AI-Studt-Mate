@@ -5,3 +5,4 @@ __pycache__/
 *.py[cod]
 data/uploaded_pdfs/
 file.pdf
+.streamlit/secrets.toml

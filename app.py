@@ -13,7 +13,7 @@ from services.document_service import get_text_splitter
 
 
 from views.home_view import render_home_page
-from views.documents_view import render_documents_page
+# from views.documents_view import render_documents_page
 from views.chat_view import render_chat_page
 from views.summary_view import render_summary_page
 from views.quiz_view import render_quiz_page
@@ -30,11 +30,26 @@ st.set_page_config(
     page_icon="🎓",
     layout="wide"
 )
+from services.auth_service import (
+    handle_auth_callback,
+    get_current_user,
+    sign_in_with_google,
+)
 
-if "session_id" not in st.seesion_state:
+handle_auth_callback()
+user = get_current_user()
+
+if not user:
+    st.title("🎓 AI Study Mate")
+    st.write("Sign in to access your personal study workspace.")
+    sign_in_with_google()
+    st.stop()
+
+if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
-    
+from views.documents_view import render_documents_page
+
 st.title("🎓 AI Study Mate")
 st.caption("Your personal AI-powered study assistant")
 
@@ -65,6 +80,7 @@ if "quiz_submitted" not in st.session_state:
 with st.sidebar:
     st.title("📚 AI Study Mate")
     st.caption("Your personal study workspace")
+    st.button("🚪 Logout",on_click=st.logout,use_container_width=True)
     st.divider()
 
     st.markdown("#### WORKSPACE")

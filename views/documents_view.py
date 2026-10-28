@@ -32,9 +32,9 @@ def get_saved_pdf_names(upload_dir):
         and os.path.isfile(os.path.join(upload_dir, filename))
     ]
 
-upload_dir = get_session_upload_dir()
 
 def render_documents_page(text_splitter, embeddings):
+    upload_dir = get_session_upload_dir()
     st.markdown("## 📚 My Documents")
     st.caption("Manage your study materials in one place")
     st.write("")
@@ -81,7 +81,7 @@ def render_documents_page(text_splitter, embeddings):
 
     # Clear all documents with confirmation
 
-    if get_saved_pdf_names():
+    if get_saved_pdf_names(upload_dir):
         if st.button("🗑️ Clear All Documents", key="clear_all_documents"):
             st.session_state.confirm_clear_documents = True
 
@@ -94,7 +94,7 @@ def render_documents_page(text_splitter, embeddings):
 
             with confirm_col:
                 if st.button("Yes, Clear All", key="confirm_clear_all"):
-                    for filename in get_saved_pdf_names():
+                    for filename in get_saved_pdf_names(upload_dir):
                         file_path = os.path.join(upload_dir, filename)
 
                         if os.path.isfile(file_path):
@@ -129,7 +129,7 @@ def render_documents_page(text_splitter, embeddings):
                     st.rerun()
 
     # Get all saved PDFs, including previously uploaded files
-    saved_pdf_names = sorted(get_saved_pdf_names())
+    saved_pdf_names = sorted(get_saved_pdf_names(upload_dir))
 
     pdf_signature = tuple(
         (
@@ -269,22 +269,29 @@ def render_documents_page(text_splitter, embeddings):
                                 document["name"]
                             )
 
+                            # Delete the selected PDF file
                             if os.path.isfile(saved_path):
                                 os.remove(saved_path)
 
-                            st.session_state.pdf_names = [
-                                name
-                                for name in st.session_state.pdf_names
-                                if name != document["name"]
-                            ]
-
+                            # Remove it from the displayed document list
                             st.session_state.document_details = [
                                 item
-                                for item in st.session_state.document_details
+                                for item in st.session_state.get(
+                                    "document_details", []
+                                )
                                 if item["name"] != document["name"]
                             ]
 
-                            st.session_state.study_documents = [
+                            st.session_state.pdf_names = [
+                                name
+                                for name in st.session_state.get(
+                                    "pdf_names", []
+                                )
+                                if name != document["name"]
+                            ]
+
+                            # Remove its content from the study documents
+                            remaining_docs = [
                                 doc
                                 for doc in st.session_state.get(
                                     "study_documents", []
@@ -293,14 +300,14 @@ def render_documents_page(text_splitter, embeddings):
                                 != document["name"]
                             ]
 
-                            remaining_docs = (
-                                st.session_state.study_documents
-                            )
-
                             if remaining_docs:
+                                st.session_state.study_documents = (
+                                    remaining_docs
+                                )
                                 st.session_state.vectorstore = (
                                     create_vectorstore(
-                                        remaining_docs, embeddings
+                                        remaining_docs,
+                                        embeddings
                                     )
                                 )
                             else:
@@ -308,12 +315,22 @@ def render_documents_page(text_splitter, embeddings):
                                     "vectorstore",
                                     "study_documents",
                                     "pdf_signature",
+                                    "pdf_names",
+                                    "document_details",
                                 ]:
                                     st.session_state.pop(key, None)
 
+                            # Reset the uploader so the removed PDF
+                            # is not uploaded again automatically
+                            st.session_state.last_upload_signature = None
+                            st.session_state.uploader_version = (
+                                st.session_state.get(
+                                    "uploader_version", 0
+                                ) + 1
+                            )
+
                             st.session_state.messages = []
                             st.session_state.pending_question = None
-                            st.session_state.last_upload_signature = None
 
                             st.rerun()
 
