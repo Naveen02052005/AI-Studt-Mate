@@ -8,36 +8,31 @@ from services.document_service import load_pdf_documents,create_vectorstore
 from types import SimpleNamespace
 
 
-UPLOAD_DIR = os.path.join(
+BASE_UPLOAD_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "data",
     "uploaded_pdfs"
 )
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@st.cache_resource
-def clear_saved_pdfs_on_startup():
-    for filename in os.listdir(UPLOAD_DIR):
-        if filename.lower().endswith(".pdf"):
-            file_path = os.path.join(UPLOAD_DIR, filename)
+def get_session_upload_dir():
+    upload_dir = os.path.join(
+        BASE_UPLOAD_DIR,
+        st.session_state.session_id
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+    return upload_dir
 
-            if os.path.isfile(file_path):
-                os.remove(file_path)
 
-    return True
-
-def get_saved_pdf_names():
+def get_saved_pdf_names(upload_dir):
     return [
         filename
-        for filename in os.listdir(UPLOAD_DIR)
+        for filename in os.listdir(upload_dir)
         if filename.lower().endswith(".pdf")
-        and os.path.isfile(
-            os.path.join(UPLOAD_DIR, filename)
-        )
+        and os.path.isfile(os.path.join(upload_dir, filename))
     ]
 
-
+upload_dir = get_session_upload_dir()
 
 def render_documents_page(text_splitter, embeddings):
     st.markdown("## 📚 My Documents")
@@ -75,7 +70,7 @@ def render_documents_page(text_splitter, embeddings):
         ):
             for uploaded_pdf in uploaded_files:
                 safe_filename = os.path.basename(uploaded_pdf.name)
-                saved_path = os.path.join(UPLOAD_DIR, safe_filename)
+                saved_path = os.path.join(upload_dir, safe_filename)
 
                 with open(saved_path, "wb") as pdf_file:
                     pdf_file.write(uploaded_pdf.getvalue())
@@ -100,7 +95,7 @@ def render_documents_page(text_splitter, embeddings):
             with confirm_col:
                 if st.button("Yes, Clear All", key="confirm_clear_all"):
                     for filename in get_saved_pdf_names():
-                        file_path = os.path.join(UPLOAD_DIR, filename)
+                        file_path = os.path.join(upload_dir, filename)
 
                         if os.path.isfile(file_path):
                             os.remove(file_path)
@@ -141,7 +136,7 @@ def render_documents_page(text_splitter, embeddings):
             filename,
             hashlib.sha256(
                 open(
-                    os.path.join(UPLOAD_DIR, filename), "rb"
+                    os.path.join(upload_dir, filename), "rb"
                 ).read()
             ).hexdigest()
         )
@@ -159,7 +154,7 @@ def render_documents_page(text_splitter, embeddings):
             document_details = []
 
             for pdf_name in saved_pdf_names:
-                saved_path = os.path.join(UPLOAD_DIR, pdf_name)
+                saved_path = os.path.join(upload_dir, pdf_name)
 
                 try:
                     with open(saved_path, "rb") as pdf_file:
@@ -270,7 +265,7 @@ def render_documents_page(text_splitter, embeddings):
                             key=f"remove_pdf_{index}"
                         ):
                             saved_path = os.path.join(
-                                UPLOAD_DIR,
+                                upload_dir,
                                 document["name"]
                             )
 

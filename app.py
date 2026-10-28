@@ -1,3 +1,4 @@
+import uuid
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -12,7 +13,7 @@ from services.document_service import get_text_splitter
 
 
 from views.home_view import render_home_page
-from views.documents_view import render_documents_page,clear_saved_pdfs_on_startup
+from views.documents_view import render_documents_page
 from views.chat_view import render_chat_page
 from views.summary_view import render_summary_page
 from views.quiz_view import render_quiz_page
@@ -30,8 +31,10 @@ st.set_page_config(
     layout="wide"
 )
 
-clear_saved_pdfs_on_startup()
+if "session_id" not in st.seesion_state:
+    st.session_state.session_id = str(uuid.uuid4())
 
+    
 st.title("🎓 AI Study Mate")
 st.caption("Your personal AI-powered study assistant")
 
